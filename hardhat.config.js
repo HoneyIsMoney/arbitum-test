@@ -1,4 +1,6 @@
 require("@nomiclabs/hardhat-waffle");
+require("@tenderly/hardhat-tenderly");
+
 
 const secret = require('./keys.json')
 
@@ -24,7 +26,15 @@ module.exports = {
     arbitum: {
       url: "https://kovan3.arbitrum.io/rpc",
       accounts: [secret.deployer]
-    }
-  }
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/b4d9f393413d42a381bd955a310fbb66`,
+      accounts: [secret.deployer]
+    },
+  },
+  tenderly: {
+    username: "greenhornet",
+    project: "arbitum",
+  },
 };
 
