@@ -9,6 +9,7 @@
     "hardhat": "^2.0.10"
   },
   "dependencies": {
-    "@tenderly/hardhat-tenderly": "^1.0.7"
+    "@tenderly/hardhat-tenderly": "^1.0.7",
+    "ethereum-event-logs": "^1.3.1"
   }
 }

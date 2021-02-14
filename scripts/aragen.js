@@ -1,5 +1,8 @@
 const hre = require("hardhat");
+const { parseLog } = require('ethereum-event-logs');
+const { EventFragment } = require("ethers/lib/utils");
 
+const ensAbi = require('../artifacts/contracts/factory/ENSFactory.sol/ENSFactory.json').abi
 const verbose = true
 
 const log = (...args) => {
@@ -15,42 +18,41 @@ async function deployEnsFactory() {
   return ensFactory
 }
 
+async function deployENS(ENSFactory, signer) {
+  const receipt = await ENSFactory.newENS(deployer.address);
+  const tx = await receipt.wait(1);
+  const ensAddress = parseLog(tx.logs, ensAbi)[0].args.ens;
+  const ENS = new hre.ethers.Contract(ensAddress, ensAbi, signer)
+  return ENS
+}
+
 async function main() {
   const signers = await hre.ethers.getSigners()
-  const provider = hre.ethers.provider
-  const deployerAddress = signers[0].address
+  deployer = signers[0]
+
   log('\n====================')
-  log(`deployerAddress: ${deployerAddress}`)
+  log(`deployerAddress: ${deployer.address}`)
   log('====================')
 
   // deploy ENSFactory
   log('Deploying ENSFactory...')
-  const ENSFactory = await deployEnsFactory(deployerAddress)
+  const ENSFactory = await deployEnsFactory(deployer)
   log("ensFactory deployed to:", ENSFactory.address);
 
   // deploy ENS
   log('====================')
   log('Deploying ENS...')
-  let ensAdd
-  const receipt = await ENSFactory.newENS(deployerAddress).then(await ENSFactory.on('DeployENS(address)', (ev) =>{
-    ensAdd = ev
-    log(`event: ${ev}`)
-  }))
-  log(ensAdd)
-/*
-  ENSFactory.on({
-    address: ENSFactory.address,
-    topics: [ethers.utils.id("newENS(address)")]
-  }, result => log(result))
-*/
-  await receipt.wait(1)
-  console.log(ensAdd)
+  ENS = await deployENS(ENSFactory, deployer);
+  log("ENS deployed to:", ENS.address);
+
 
   await tenderly.verify({
     name: "ENSFactory",
     address: ENSFactory.address
   })
   log('====================')
+
+
 
 }
 
@@ -60,26 +62,3 @@ main()
     console.error(error);
     process.exit(1);
   });
-
-
-/*
-const ethers = require('.');
-
-let provider = ethers.getDefaultProvider();
-
-let contractEnsName = 'registrar.firefly.eth';
-
-let topic = ethers.utils.id("nameRegistered(bytes32,address,uint256)");
-
-let filter = {
-  address: contractEnsName,
-  topics: [ topic ]
-}
-
-provider.on(filter, (result) => {
-  console.log(result);
-});
-
-// Force starting events from this block; for this example
-provider.resetEventsBlock(6448261);
-*/
