@@ -20,6 +20,11 @@ async function main() {
   await greeter.deployed();
 
   console.log("Greeter deployed to:", greeter.address);
+
+  const tx = await greeter.setGreeting("Hello from L2");
+
+  const hash = await tx.wait(1)
+  console.log(hash.blockHash)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
