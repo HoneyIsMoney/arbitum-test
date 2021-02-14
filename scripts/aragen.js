@@ -1,5 +1,13 @@
 const hre = require("hardhat");
 
+const verbose = true
+
+const log = (...args) => {
+  if (verbose) {
+    console.log(...args)
+  }
+}
+
 async function deployEnsFactory() {
   const ENSFactory = await hre.ethers.getContractFactory("ENSFactory");
   const ensFactory = await ENSFactory.deploy();
@@ -10,12 +18,12 @@ async function deployEnsFactory() {
 async function main() {
   const signers = await hre.ethers.getSigners()
   const deployerAddress = signers[0].address
-  console.log(`\ndeployerAddress: ${deployerAddress}`)
+  log(`\ndeployerAddress: ${deployerAddress}`)
   console.log('----------------------------------------------------------------------')
 
   // deploy ENSFactory
   const ENSFactory = await deployEnsFactory(deployerAddress)
-  console.log("ensFactory deployed to:", ENSFactory.address);
+  log("ensFactory deployed to:", ENSFactory.address);
 }
 
 main()
