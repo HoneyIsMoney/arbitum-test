@@ -59,25 +59,6 @@ async function main() {
   log("ENS deployed to:", ENS.address);
 
   log('====================')
-  log('Deploying APM...')
-
-const hatchLabelHash = '0x' + keccak256(hatchLabelName)
-  log(`TLD: ${tldName} (${tldHash})`)
-  log(`Label: ${labelName} (${labelHash})`)
-
-  const APMRegistry = await hre.ethers.getContractFactory("APMRegistry");
-  const apmRegistryBase = await APMRegistry.deploy();
-  log(`apmRegistryBase: ${apmRegistryBase.address}`)
-
-  const APMRepo = await hre.ethers.getContractFactory("Repo");
-  const apmRepoBase = await APMRepo.deploy();
-  log(`apmRepoBase: ${apmRepoBase.address}`)
-
-  const ENSSubdomainRegistrar = await hre.ethers.getContractFactory("ENSSubdomainRegistrar");
-  const ensSubdomainRegistrarBase = await ENSSubdomainRegistrar.deploy();
-  log(`ensSubdomainRegistrarBase: ${ensSubdomainRegistrarBase.address}`)
-
-  log('====================')
   log('Deploying DAOFactory with EVMScripts...')
   const KernelBase = await hre.ethers.getContractFactory("Kernel");
   const kernelBase = await KernelBase.deploy(true); // immediately petrify
@@ -99,10 +80,37 @@ const hatchLabelHash = '0x' + keccak256(hatchLabelName)
   );
   log(`daoFactory: ${daoFactory.address}`)
 
+  log('====================')
+  log('Deploying APM...')
+
+const hatchLabelHash = '0x' + keccak256(hatchLabelName)
+  log(`TLD: ${tldName} (${tldHash})`)
+  log(`Label: ${labelName} (${labelHash})`)
+
+  const APMRegistry = await hre.ethers.getContractFactory("APMRegistry");
+  const apmRegistryBase = await APMRegistry.deploy();
+  log(`apmRegistryBase: ${apmRegistryBase.address}`)
+
+  const APMRepo = await hre.ethers.getContractFactory("Repo");
+  const apmRepoBase = await APMRepo.deploy();
+  log(`apmRepoBase: ${apmRepoBase.address}`)
+
+  const ENSSubdomainRegistrar = await hre.ethers.getContractFactory("ENSSubdomainRegistrar");
+  const ensSubdomainRegistrarBase = await ENSSubdomainRegistrar.deploy();
+  log(`ensSubdomainRegistrarBase: ${ensSubdomainRegistrarBase.address}`)
+
+  const APMRegistryFactory = await hre.ethers.getContractFactory("APMRegistryFactory");
+  const apmRegistryFactory = await APMRegistryFactory.deploy(
+    daoFactory.address,
+    apmRegistryBase.address,
+    apmRepoBase.address,
+    ensSubdomainRegistrarBase.address,
+    ENS.address,
+    '0x0000000000000000000000000000000000000000' //0x00
+  );
+  log(`apmRegistryFactory: ${apmRegistryFactory.address}`)
 
 
-//  const ensSubdomainRegistrarBase = await ENSSubdomainRegistrar.new()
-//  await logDeploy(ensSubdomainRegistrarBase, { verbose })
 
 
 
@@ -134,6 +142,18 @@ const hatchLabelHash = '0x' + keccak256(hatchLabelName)
     {
       name: "ACL",
       address: aclBase.address
+    },
+    {
+      name: "EVMScriptRegistryFactory",
+      address: evmScriptRegistryFactory.address
+    },
+    {
+      name: "DAOFactory",
+      address: daoFactory.address
+    },
+    {
+      name: "APMRegistryFactory",
+      address: apmRegistryFactory.address
     },
   )
   log('====================')
