@@ -5,18 +5,19 @@ const namehash = require('eth-ens-namehash').hash
 const keccak256 = require('js-sha3').keccak_256
 const logDeploy = require('@aragon/os/scripts/helpers/deploy-logger')
 
-const ensAbi = require('../artifacts/contracts/factory/ENSFactory.sol/ENSFactory.json').abi
+const ensFactoryAbi = require('../artifacts/contracts/factory/ENSFactory.sol/ENSFactory.json').abi
+const ensAbi = require('../artifacts/contracts/lib/ens/ENS.sol/ENS.json').abi
 const verbose = true
 
-  // APM STUFF
-  const tldName = 'eth'
-  const labelName = 'aragonpm'
-  const tldHash = namehash(tldName)
-  const labelHash = '0x' + keccak256(labelName)
-  const apmNode = namehash(`${labelName}.${tldName}`)
-  const openLabelName = 'open'
-  const hatchLabelName = 'hatch'
-  const openLabelHash = '0x' + keccak256(openLabelName)
+// APM STUFF
+const tldName = 'eth'
+const labelName = 'aragonpm'
+const tldHash = namehash(tldName)
+const labelHash = '0x' + keccak256(labelName)
+const apmNode = namehash(`${labelName}.${tldName}`)
+const openLabelName = 'open'
+const hatchLabelName = 'hatch'
+const openLabelHash = '0x' + keccak256(openLabelName)
 
 const log = (...args) => {
   if (verbose) {
@@ -34,7 +35,7 @@ async function deployEnsFactory() {
 async function deployENS(ENSFactory, signer) {
   const receipt = await ENSFactory.newENS(deployer.address);
   const tx = await receipt.wait(1);
-  const ensAddress = parseLog(tx.logs, ensAbi)[0].args.ens;
+  const ensAddress = parseLog(tx.logs, ensFactoryAbi)[0].args.ens;
   const ENS = new hre.ethers.Contract(ensAddress, ensAbi, signer)
   return ENS
 }
@@ -51,12 +52,20 @@ async function main() {
   log('Deploying ENSFactory...')
   const ENSFactory = await deployEnsFactory(deployer)
   log("ensFactory deployed to:", ENSFactory.address);
+  await tenderly.verify({
+    name: "ENSFactory",
+    address: ENSFactory.address
+  })
 
   // deploy ENS
   log('====================')
   log('Deploying ENS...')
-  ENS = await deployENS(ENSFactory, deployer);
+  const ENS = await deployENS(ENSFactory, deployer);
   log("ENS deployed to:", ENS.address);
+  await tenderly.verify({
+    name: "ENSFactory",
+    address: ENSFactory.address
+  })
 
   log('====================')
   log('Deploying DAOFactory with EVMScripts...')
@@ -83,9 +92,7 @@ async function main() {
   log('====================')
   log('Deploying APM...')
 
-const hatchLabelHash = '0x' + keccak256(hatchLabelName)
-  log(`TLD: ${tldName} (${tldHash})`)
-  log(`Label: ${labelName} (${labelHash})`)
+  const hatchLabelHash = '0x' + keccak256(hatchLabelName)
 
   const APMRegistry = await hre.ethers.getContractFactory("APMRegistry");
   const apmRegistryBase = await APMRegistry.deploy();
@@ -110,15 +117,22 @@ const hatchLabelHash = '0x' + keccak256(hatchLabelName)
   );
   log(`apmRegistryFactory: ${apmRegistryFactory.address}`)
 
+  log('====================')
+  log(`Assigning ENS name (${labelName}.${tldName}) to factory...`)
+  await ENS.setOwner(apmNode, apmRegistryFactory.address)
+  const ensOwner = await ENS.owner(apmNode)
+  log(`ens owner: ${ensOwner}`)
 
+
+  //
+  //const registrar = await apmRegistryBase.registrar()
+  //const apmENSSubdomainRegistrar = ENSSubdomainRegistrar.at(registrar)
+  //const create_name_role = await apmENSSubdomainRegistrar.CREATE_NAME_ROLE()
+  //og(`registrar: ${registrar}`)
 
 
 
   await tenderly.verify(
-    {
-      name: "ENSFactory",
-      address: ENSFactory.address
-    },
     {
       name: "ENS",
       address: ENS.address
