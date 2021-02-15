@@ -1,9 +1,21 @@
 const hre = require("hardhat");
 const { parseLog } = require('ethereum-event-logs');
 const { EventFragment } = require("ethers/lib/utils");
+const namehash = require('eth-ens-namehash').hash
+const keccak256 = require('js-sha3').keccak_256
+const logDeploy = require('@aragon/os/scripts/helpers/deploy-logger')
 
 const ensAbi = require('../artifacts/contracts/factory/ENSFactory.sol/ENSFactory.json').abi
 const verbose = true
+
+// APM STUFF
+const tldName = 'eth'
+const labelName = 'aragonpm'
+const tldHash = namehash(tldName)
+const labelHash = '0x' + keccak256(labelName)
+const apmNode = namehash(`${labelName}.${tldName}`)
+const openLabelHash = '0x' + keccak256(openLabelName)
+const hatchLabelHash = '0x' + keccak256(hatchLabelName)
 
 const log = (...args) => {
   if (verbose) {
@@ -45,11 +57,22 @@ async function main() {
   ENS = await deployENS(ENSFactory, deployer);
   log("ENS deployed to:", ENS.address);
 
+  log('====================')
+  log('Deploying APM...')
+  log(`TLD: ${tldName} (${tldHash})`)
+  log(`Label: ${labelName} (${labelHash})`)
+
+
 
   await tenderly.verify({
-    name: "ENSFactory",
-    address: ENSFactory.address
-  })
+      name: "ENSFactory",
+      address: ENSFactory.address
+    },
+    {
+      name: "ENS",
+      address: ENS.address
+    },
+  )
   log('====================')
 
 
