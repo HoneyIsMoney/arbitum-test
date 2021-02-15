@@ -8,14 +8,15 @@ const logDeploy = require('@aragon/os/scripts/helpers/deploy-logger')
 const ensAbi = require('../artifacts/contracts/factory/ENSFactory.sol/ENSFactory.json').abi
 const verbose = true
 
-// APM STUFF
-const tldName = 'eth'
-const labelName = 'aragonpm'
-const tldHash = namehash(tldName)
-const labelHash = '0x' + keccak256(labelName)
-const apmNode = namehash(`${labelName}.${tldName}`)
-const openLabelHash = '0x' + keccak256(openLabelName)
-const hatchLabelHash = '0x' + keccak256(hatchLabelName)
+  // APM STUFF
+  const tldName = 'eth'
+  const labelName = 'aragonpm'
+  const tldHash = namehash(tldName)
+  const labelHash = '0x' + keccak256(labelName)
+  const apmNode = namehash(`${labelName}.${tldName}`)
+  const openLabelName = 'open'
+  const hatchLabelName = 'hatch'
+  const openLabelHash = '0x' + keccak256(openLabelName)
 
 const log = (...args) => {
   if (verbose) {
@@ -59,18 +60,80 @@ async function main() {
 
   log('====================')
   log('Deploying APM...')
+
+const hatchLabelHash = '0x' + keccak256(hatchLabelName)
   log(`TLD: ${tldName} (${tldHash})`)
   log(`Label: ${labelName} (${labelHash})`)
 
+  const APMRegistry = await hre.ethers.getContractFactory("APMRegistry");
+  const apmRegistryBase = await APMRegistry.deploy();
+  log(`apmRegistryBase: ${apmRegistryBase.address}`)
+
+  const APMRepo = await hre.ethers.getContractFactory("Repo");
+  const apmRepoBase = await APMRepo.deploy();
+  log(`apmRepoBase: ${apmRepoBase.address}`)
+
+  const ENSSubdomainRegistrar = await hre.ethers.getContractFactory("ENSSubdomainRegistrar");
+  const ensSubdomainRegistrarBase = await ENSSubdomainRegistrar.deploy();
+  log(`ensSubdomainRegistrarBase: ${ensSubdomainRegistrarBase.address}`)
+
+  log('====================')
+  log('Deploying DAOFactory with EVMScripts...')
+  const KernelBase = await hre.ethers.getContractFactory("Kernel");
+  const kernelBase = await KernelBase.deploy(true); // immediately petrify
+  log(`Kernel Base: ${kernelBase.address}`)
+
+  const ACLBase = await hre.ethers.getContractFactory("ACL");
+  const aclBase = await ACLBase.deploy();
+  log(`acl Base: ${aclBase.address}`)
+
+  const EVMScriptRegistryFactory = await hre.ethers.getContractFactory("EVMScriptRegistryFactory");
+  const evmScriptRegistryFactory = await EVMScriptRegistryFactory.deploy();
+  log(`EVMScriptRegistryFactory: ${evmScriptRegistryFactory.address}`)
+
+  const DAOFactory = await hre.ethers.getContractFactory("DAOFactory");
+  const daoFactory = await DAOFactory.deploy(
+    kernelBase.address,
+    aclBase.address,
+    evmScriptRegistryFactory.address
+  );
+  log(`daoFactory: ${daoFactory.address}`)
 
 
-  await tenderly.verify({
+
+//  const ensSubdomainRegistrarBase = await ENSSubdomainRegistrar.new()
+//  await logDeploy(ensSubdomainRegistrarBase, { verbose })
+
+
+
+  await tenderly.verify(
+    {
       name: "ENSFactory",
       address: ENSFactory.address
     },
     {
       name: "ENS",
       address: ENS.address
+    },
+    {
+      name: "APMRegistry",
+      address: apmRegistryBase.address
+    },
+    {
+      name: "Repo",
+      address: apmRepoBase.address
+    },
+    {
+      name: "ENSSubdomainRegistrar",
+      address: ensSubdomainRegistrarBase.address
+    },
+    {
+      name: "Kernel",
+      address: kernelBase.address
+    },
+    {
+      name: "ACL",
+      address: aclBase.address
     },
   )
   log('====================')
